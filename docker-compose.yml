@@ -1,0 +1,12 @@
+version: '3'
+services:
+    varnish:
+        build: .
+        ports:
+            - "80:80"
+        environment:
+            - REQ_HOST=www.planejamento.gov.br
+    haproxy:
+        image: "haproxy:1.7"
+        volumes:
+            - ./haproxy/:/usr/local/etc/haproxy:ro
