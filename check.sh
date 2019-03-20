@@ -4,7 +4,18 @@ set -e
 . /etc/varnish/logs.sh
 
 applyConfig () {
-  log_info "Configuration applied: $1"
+  # Remove duplicates entries
+  config=$(echo "$1" | tr ' ' '\n' | sort -u)
+  
+  log_info "Configuration applied: $config"
+  sh /etc/varnish/genConfig.sh "$config"
+}
+
+backend_health () {
+  while sleep $PROBE_INTERVAL
+  do
+    varnishadm -S /etc/varnish/secret backend.list >&2
+  done
 }
 
 #echo $DAEMON_OPTS
@@ -19,6 +30,12 @@ echo $DAEMON_OPTS
 /usr/sbin/varnishd -j unix,user=varnish -F $DAEMON_OPTS > /dev/stdout 2>/dev/stderr &
 # Wait for varnish to go up
 sleep 5
+
+backend_health &
+
+varnishncsa -c -F '[ CLIENT ] %{X-Forwarded-For}i %l %u %t "%r" %s %b "%{Referer}i" "%{User-agent}i"' &
+
+varnishncsa -b -F '[ BACKEND ] %{X-Forwarded-For}i %l %u %t "%r" %s %b "%{Referer}i" "%{User-agent}i"' &
 
 while [ 1 ]
 do
@@ -39,14 +56,7 @@ do
   elif [ $oldHash != $newHash ]; then
     # Iterate wait variable
     echo $(($(</tmp/wait)+1)) >/dev/shm/wait
-    apply_backends=$backends_new
     log_info "Novos backends - $backends_new"
-    log_debug "Wait set: $(</tmp/wait)"
+    applyConfig "$backends_new"
   fi
- 
-  if [ "$(</tmp/wait)" = "1" ]; then 
-    log_debug "Wait apply: $(</tmp/wait)"
-    # Fork, Wait sometime and Apply new configuration
-    (sleep 10; applyConfig $apply_backends; echo 0 >/tmp/wait) &    
-  fi 
 done

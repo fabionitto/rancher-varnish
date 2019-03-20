@@ -21,11 +21,14 @@ ENV VARNISH_STORAGE_SIZE 1G
 ENV VARNISH_SECRET_FILE /etc/varnish/secret
 ENV VARNISH_STORAGE "file,${VARNISH_STORAGE_FILE},${VARNISH_STORAGE_SIZE}"
 ENV VARNISH_TTL 120
+ENV CACHE_TTL 5m
+ENV CACHE_GRACE 2h
+ENV CACHE_KEEP 5d
 
 COPY varnish /etc/default/varnish
 COPY varnish.vcl /etc/varnish/varnish_template.vcl
 COPY be_template.vcl /etc/varnish/be_template.vcl
-COPY runVarnish.sh /etc/varnish/runVarnish.sh
+COPY genConfig.sh /etc/varnish/genConfig.sh
 COPY backends.sh /etc/varnish/backends.sh
 COPY logs.sh /etc/varnish/logs.sh
 COPY check.sh /etc/varnish/check.sh

@@ -7,5 +7,5 @@ log_debug () {
 }
 
 log_info () {
-  echo >&2 "[ INFO ]" $1
+  echo "[ INFO ]" $1
 }

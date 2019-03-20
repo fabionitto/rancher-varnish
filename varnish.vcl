@@ -34,6 +34,7 @@ sub vcl_recv {
     set req.backend_hint = bar.backend();
 
     unset req.http.Cookie;    
+    unset req.http.Authorization;
 
 }
 
@@ -60,13 +61,22 @@ sub vcl_backend_response {
     set beresp.http.Cache-Control = "public, max-age=60";  
 
     # cache set the clients TTL on this object /  
-    set beresp.ttl = 1m;  
+    set beresp.ttl = %CACHE_TTL%;  
+
+    if (bereq.url ~ "\.(css|js|png|gif|jp(e?)g|swf|ico)$") {
+        set beresp.http.Cache-Control = "public, max-age=86400";
+	set beresp.ttl = 1d;
+    }
+
+    if (beresp.http.content-type ~ "text") {
+        set beresp.do_gzip = true;
+    }
 
     # Allow stale content, in case the backend goes down.  
     # make Varnish keep all objects for 6 hours beyond their TTL  
     ##set beresp.grace = 6h;    
-    set beresp.grace = 2h;
-    set beresp.keep = 2d;
+    set beresp.grace = %CACHE_GRACE%;
+    set beresp.keep = %CACHE_KEEP%;
 
     unset beresp.http.Cookie;
 
